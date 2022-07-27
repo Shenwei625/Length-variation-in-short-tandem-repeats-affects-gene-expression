@@ -194,8 +194,33 @@ cat Arabidopsis_thaliana_STR.tsv | perl -a -F"\t" -ne'
 ' > Arabidopsis_thaliana_STR.bed
 ```
 
+## 1.4 使用 HipSTR 查找不同 accession 中的 STR
++ HipSTR下载
+```bash
+mkdir biosoft
+cd biosoft
 
-# 参考
+git clone https://github.com/HipSTR-Tool/HipSTR
+cd HipSTR
+make
+export PATH="$(pwd):$PATH"
+source $HOME/.bashrc
+
+./HipSTR --help
+```
+
++ 查找STR
+```bash
+mkdir STR
+cd STR
+
+HipSTR –-bams ../sequence/SRR1945464.bam --fasta ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf str_calls.vcf.gz
+```
+
+
+
+
+## 参考
 [1、BWA 使用详解](https://www.jianshu.com/p/3b86615d647b?utm_campaign=maleskine&utm_content=note&utm_medium=seo_notes&utm_source=recommendation)
 
 [2、通过HipSTR 对二代测序（NGS）数据进行 短串联重复序列（short tandem repeats，STR）检测](https://blog.csdn.net/qq_42962326/article/details/105058661)
@@ -203,4 +228,10 @@ cat Arabidopsis_thaliana_STR.tsv | perl -a -F"\t" -ne'
 [3、TRF（tandem repeats finder ）安装与使用（二）](https://www.jianshu.com/p/66d562fb47de)
 
 [4、基因组注释--重复序列注释（一）：Trf软件安装与使用](https://www.jianshu.com/p/efe2d66f8969)
+
+[5、HipSTR](https://github.com/HipSTR-Tool/HipSTR)
+
+[6、Length variation in short tandem repeats affects gene expression in natural populations of Arabidopsis thaliana](https://academic.oup.com/plcell/article/33/7/2221/6225030?login=true)
+
+
 
