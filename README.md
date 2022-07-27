@@ -26,6 +26,10 @@ parallel -j 4 "
 " ::: $(ls *.sra)
 
 rm *.sra
+
+parallel -j 4 "
+    gzip -d {1}
+" ::: $(ls *.gz)
 ```
 
 ## 1.2 利用 BWA 将 reads 匹配到 TAIR10 的参考基因组（Col-0）上
@@ -74,8 +78,9 @@ mkdir BWA
 cd BWA
 
 bwa index ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa -p ref
-
-
+for i in SRR1945464 SRR1945477 SRR1945478 SRR1945487;do
+    bwa mem -t 4 ref ../sequence/$i'_1'.fastq  ../sequence/$i'_2'.fastq > $i.sam
+done
 ```
 
 ## 1.3 使用 Tandem Repeats Finder 查找参考基因组的 STRs 并且构建 bed 文件（HipSTR 参考文件）
