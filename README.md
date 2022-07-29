@@ -81,6 +81,11 @@ bwa index ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa -p r
 for i in SRR1945464 SRR1945477 SRR1945478 SRR1945487;do
     bwa mem -t 4 ref ../sequence/$i'_1'.fastq  ../sequence/$i'_2'.fastq > $i.sam
 done
+
+parallel -k -j 4 "
+    samtools sort -@ 4 {1}.sam > {1}.sort.bam
+    samtools index {1}.sort.bam
+" ::: $(ls *.sam | perl -p -e 's/\.sam$//')
 ```
 
 ## 1.3 使用 Tandem Repeats Finder 查找参考基因组的 STRs 并且构建 bed 文件（HipSTR 参考文件）
@@ -117,6 +122,7 @@ Maxperiod: 最大的重复单元 bp 数
 -m: 该参数将输入文件中trf序列屏蔽为N输出
 -f: 该参数将输出每一串联重复序列两侧200bp 的侧翼序列，输出到比对文件中
 -d: 该参数将产生一个屏蔽文件，记录了与列表文件一样的信息，及比对信息，可用于后续程序的处理
+-h：不输出网页版结果
 ```
 
 + 注释
@@ -208,13 +214,30 @@ source $HOME/.bashrc
 
 ./HipSTR --help
 ```
++ 修改参考基因组文件
+```bash
+cd reference
+
+for i in `seq 5`;do
+    faops replace $i.fa <(echo -e "$i\tchr$i") $i.replace.fa
+    cat $i.replace.fa >> genome.fa
+    rm $i.fa
+done
+
+faops size genome.fa
+chr1    30427671
+chr2    19698289
+chr3    23459830
+chr4    18585056
+chr5    26975502
+```
 
 + 查找STR
 ```bash
 mkdir STR
 cd STR
 
-HipSTR –-bams ../sequence/SRR1945464.bam --fasta ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf str_calls.vcf.gz
+HipSTR --bams ../BWA/SRR1945464.bam,../BWA/SRR1945477.bam,../BWA/SRR1945478.bam,../BWA/SRR1945487.bam --fasta ../sequence/reference/genome.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz 
 ```
 
 
