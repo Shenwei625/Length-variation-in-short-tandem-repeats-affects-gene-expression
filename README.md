@@ -237,7 +237,7 @@ chr5    26975502
 mkdir STR
 cd STR
 
-HipSTR --bams ../BWA/SRR1945464.bam,../BWA/SRR1945477.bam,../BWA/SRR1945478.bam,../BWA/SRR1945487.bam --fasta ../sequence/reference/genome.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz 
+HipSTR --bams ../BWA/SRR1945464.sort.bam,../BWA/SRR1945477.sort.bam,../BWA/SRR1945478.sort.bam,../BWA/SRR1945487.sort.bam --fasta ../sequence/reference/genome.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz 
 ```
 
 
