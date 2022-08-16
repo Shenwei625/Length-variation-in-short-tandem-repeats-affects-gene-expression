@@ -32,7 +32,7 @@ parallel -j 4 "
 " ::: $(ls *.gz)
 ```
 
-## 1.2 利用 BWA 将 reads 匹配到 TAIR10 的参考基因组（Col-0）上
+## 1.2.1 利用 BWA 将 reads 匹配到 TAIR10 的参考基因组（Col-0）上
 + BWA (Burrows-Wheeler-Alignment Tool) 简介
 
 BWA 是一种能够将差异度较小的序列比对到一个较大的参考基因组上的软件包。它由三个不同的算法：
@@ -82,6 +82,32 @@ for i in SRR1945464 SRR1945477 SRR1945478 SRR1945487;do
     bwa mem -t 4 ref ../sequence/$i'_1'.fastq  ../sequence/$i'_2'.fastq > $i.sam
 done
 
+parallel -k -j 4 "
+    samtools sort -@ 4 {1}.sam > {1}.sort.bam
+    samtools index {1}.sort.bam
+" ::: $(ls *.sam | perl -p -e 's/\.sam$//')
+```
+
+## 1.2.2 利用hisat2进行序列比对
+```bash
+mkdir hisat2
+cd hisat2
+
+# 建立索引
+hisat2-build  -p 6 ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa Arabidopsis_thaliana
+
+# 比对
+mkdir output
+cd output
+
+parallel -k -j 4 "
+    hisat2 -t -x ../Arabidopsis_thaliana \
+      -1 ../../sequence/{1}_1.fastq.gz -2 ../../sequence/{1}_2.fastq.gz -S ./{1}.sam \
+      2>./{1}.log
+" ::: $(ls ../../sequence/*.gz | perl -p -e 's/..\/..\/sequence\///;
+s/_.+//' | uniq)
+
+# 格式转化与排序
 parallel -k -j 4 "
     samtools sort -@ 4 {1}.sam > {1}.sort.bam
     samtools index {1}.sort.bam
@@ -214,30 +240,20 @@ source $HOME/.bashrc
 
 ./HipSTR --help
 ```
-+ 修改参考基因组文件
-```bash
-cd reference
-
-for i in `seq 5`;do
-    faops replace $i.fa <(echo -e "$i\tchr$i") $i.replace.fa
-    cat $i.replace.fa >> genome.fa
-    rm $i.fa
-done
-
-faops size genome.fa
-chr1    30427671
-chr2    19698289
-chr3    23459830
-chr4    18585056
-chr5    26975502
-```
 
 + 查找STR
 ```bash
 mkdir STR
 cd STR
 
-HipSTR --bams ../BWA/SRR1945464.sort.bam,../BWA/SRR1945477.sort.bam,../BWA/SRR1945478.sort.bam,../BWA/SRR1945487.sort.bam --fasta ../sequence/reference/genome.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz 
+HipSTR --bams ../BWA/SRR1945464.sort.bam,../BWA/SRR1945477.sort.bam,../BWA/SRR1945478.sort.bam,../BWA/SRR1945487.sort.bam --fasta ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz 
+
+# 出现了错误
+# ERROR: Provided BAM/CRAM files don't contain read groups in the header and the --bam-samps flag was not specified
+# 尝试利用hisat2再次进行比对
+
+
+HipSTR --bams ../hisat2/output/SRR1945464.sort.bam,../hisat2/output/SRR1945477.sort.bam,../hisat2/output/SRR1945478.sort.bam,../hisat2/output/SRR1945487.sort.bam --fasta ../sequence/reference/genome.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz 
 ```
 
 
