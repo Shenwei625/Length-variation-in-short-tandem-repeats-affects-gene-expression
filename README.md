@@ -82,8 +82,10 @@ for i in SRR1945464 SRR1945477 SRR1945478 SRR1945487;do
     bwa mem -t 4 ref ../sequence/$i'_1'.fastq  ../sequence/$i'_2'.fastq > $i.sam
 done
 
-parallel -k -j 4 "
-    samtools sort -@ 4 {1}.sam > {1}.sort.bam
+# bwa mem -t 4 -M -R "\@RG\tID:{library}\tLB:{library}\tPL:Illumina\tPU:{sample}\tSM:{sample}\"  ref.fa read1.fastq read2.fastq > mem-pe.sam 2> ./mem-pe.log
+
+parallel -k -j 2 "
+    samtools sort -@ 2 {1}.sam > {1}.sort.bam
     samtools index {1}.sort.bam
 " ::: $(ls *.sam | perl -p -e 's/\.sam$//')
 ```
@@ -108,8 +110,8 @@ parallel -k -j 4 "
 s/_.+//' | uniq)
 
 # 格式转化与排序
-parallel -k -j 4 "
-    samtools sort -@ 4 {1}.sam > {1}.sort.bam
+parallel -k -j 2 "
+    samtools sort -@ 2 {1}.sam > {1}.sort.bam
     samtools index {1}.sort.bam
 " ::: $(ls *.sam | perl -p -e 's/\.sam$//')
 ```
@@ -224,6 +226,8 @@ cat Arabidopsis_thaliana_STR.tsv | perl -a -F"\t" -ne'
     $i = $i + 1;
     print "@F[0]\t@F[1]\t@F[2]\t@F[3]\t@F[4]\t" . "Arabidopsis_thaliana_STR_$i\t" . "@F[14]\n";
 ' > Arabidopsis_thaliana_STR.bed
+
+sed -i 's/chr//1' Arabidopsis_thaliana_STR.bed
 ```
 
 ## 1.4 使用 HipSTR 查找不同 accession 中的 STR
@@ -250,12 +254,22 @@ HipSTR --bams ../BWA/SRR1945464.sort.bam,../BWA/SRR1945477.sort.bam,../BWA/SRR19
 
 # 出现了错误
 # ERROR: Provided BAM/CRAM files don't contain read groups in the header and the --bam-samps flag was not specified
-# 尝试利用hisat2再次进行比对
+# 利用 BWA 的 -R 参数或者 hisat2 的 --rg-id 参数再次进行比对或者
+# 在 HipSTR 后面加上--bam-samps 与 --bam-libs 参数
 
+samtools faidx ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa
 
-HipSTR --bams ../hisat2/output/SRR1945464.sort.bam,../hisat2/output/SRR1945477.sort.bam,../hisat2/output/SRR1945478.sort.bam,../hisat2/output/SRR1945487.sort.bam --fasta ../sequence/reference/genome.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz 
+HipSTR --bams ../hisat2/output/SRR1945464.sort.bam,../hisat2/output/SRR1945477.sort.bam,../hisat2/output/SRR1945478.sort.bam,../hisat2/output/SRR1945487.sort.bam --fasta ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz --bam-samps SAMPLE1,SAMPLE2,SAMPLE3,SAMPLE4 --bam-libs LIB1,LIB2,LIB3,LIB4
+
+# 出现了错误
+# ERROR: Invalid CIGAR option encountered in trimAlignment
 ```
 
++ BAM文件中的CIGAR参数
+
+>CIGAR 是 Compact Idiosyncratic Gapped Alignment Report的首字母缩写，称为“雪茄”字符串。
+
+>作为一个字符串，它用数字和几个字符的组合形象记录了read比对到参考序列上的细节情况，读起来要比FLAG直观友好许多，只是记录的是不同的信息。比如，一条150bp长的read比对到基因组之后，假如看到它的CIGAR字符串为：33S117M，其意思是说在比对的时候这条read开头的33bp在被跳过了（S），紧接其后的117bp则比对上了参考序列（M）。这里的S代表软跳过（Soft clip），M代表匹配（Match）。CIGAR的标记字符有“MIDNSHP=XB”这10个，分别代表read比对时的不同情况.
 
 
 
@@ -272,5 +286,5 @@ HipSTR --bams ../hisat2/output/SRR1945464.sort.bam,../hisat2/output/SRR1945477.s
 
 [6、Length variation in short tandem repeats affects gene expression in natural populations of Arabidopsis thaliana](https://academic.oup.com/plcell/article/33/7/2221/6225030?login=true)
 
-
+[7、BEM文件的：flags、CIGAR、MAPQ](https://www.jianshu.com/p/ede7735eda20)
 
