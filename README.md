@@ -78,11 +78,14 @@ mkdir BWA
 cd BWA
 
 bwa index ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa -p ref
-for i in SRR1945464 SRR1945477 SRR1945478 SRR1945487;do
-    bwa mem -t 4 ref ../sequence/$i'_1'.fastq  ../sequence/$i'_2'.fastq > $i.sam
-done
+# for i in SRR1945464 SRR1945477 SRR1945478 SRR1945487;do
+#     bwa mem -t 4 ref ../sequence/$i'_1'.fastq  ../sequence/$i'_2'.fastq > $i.sam
+# done
 
-# bwa mem -t 4 -M -R "\@RG\tID:{library}\tLB:{library}\tPL:Illumina\tPU:{sample}\tSM:{sample}\"  ref.fa read1.fastq read2.fastq > mem-pe.sam 2> ./mem-pe.log
+
+for i in SRR1945464 SRR1945477 SRR1945478 SRR1945487;do
+    bwa mem -t 4 -M -R "@RG\tID:$i\tLB:$i\tPL:Illumina\tPU:$i\tSM:$i"  ref ../sequence/$i'_1'.fastq  ../sequence/$i'_2'.fastq > $i.sam 2> $i.log
+done
 
 parallel -k -j 2 "
     samtools sort -@ 2 {1}.sam > {1}.sort.bam
@@ -259,7 +262,7 @@ HipSTR --bams ../BWA/SRR1945464.sort.bam,../BWA/SRR1945477.sort.bam,../BWA/SRR19
 
 samtools faidx ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa
 
-HipSTR --bams ../hisat2/output/SRR1945464.sort.bam,../hisat2/output/SRR1945477.sort.bam,../hisat2/output/SRR1945478.sort.bam,../hisat2/output/SRR1945487.sort.bam --fasta ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz --bam-samps SAMPLE1,SAMPLE2,SAMPLE3,SAMPLE4 --bam-libs LIB1,LIB2,LIB3,LIB4
+HipSTR --bams ../hisat2/output/SRR1945464.sort.bam,../hisat2/output/SRR1945477.sort.bam,../hisat2/output/SRR1945478.sort.bam,../hisat2/output/SRR1945487.sort.bam --fasta ../sequence/reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa --region ../TRF/Arabidopsis_thaliana_STR.bed --str-vcf AT_vcf.gz --bam-samps SAMPLE1,SAMPLE2,SAMPLE3,SAMPLE4 --bam-libs SRR1945464,SRR1945477,SRR1945478,SRR1945487
 
 # 出现了错误
 # ERROR: Invalid CIGAR option encountered in trimAlignment
@@ -270,6 +273,34 @@ HipSTR --bams ../hisat2/output/SRR1945464.sort.bam,../hisat2/output/SRR1945477.s
 >CIGAR 是 Compact Idiosyncratic Gapped Alignment Report的首字母缩写，称为“雪茄”字符串。
 
 >作为一个字符串，它用数字和几个字符的组合形象记录了read比对到参考序列上的细节情况，读起来要比FLAG直观友好许多，只是记录的是不同的信息。比如，一条150bp长的read比对到基因组之后，假如看到它的CIGAR字符串为：33S117M，其意思是说在比对的时候这条read开头的33bp在被跳过了（S），紧接其后的117bp则比对上了参考序列（M）。这里的S代表软跳过（Soft clip），M代表匹配（Match）。CIGAR的标记字符有“MIDNSHP=XB”这10个，分别代表read比对时的不同情况.
+
+
+## 1.5 查找 R 基因
++ 直接使用文章附录中的数据（STR文件：210217.SuppDataSet2.DiploidUnitNumberCalls.tsv以及基因表达量文件：210217.ExtraMaterial.logX.tsv）
+### 1.6 样本 R 基因表达量统计
+>**R基因**
+>
+>植物在漫长的生命历程中往往面临着多种多样逆境的威胁，所以植物不得不进化出一系列复杂的防御机制以抵抗环境中的真菌、细菌、病毒等病原体。抗性基因（Resistance gene，R gene）作为一类重要的植物防御基因，可以直接或间接地通过基因和基因之间的互作作用特异性识别病原体的产物来产生信号并传导信号，引起强烈的防御作用。
+>
+>大部分植物的 R 蛋白的特征结构域包括核酸结合位点（nucleotide-binding site，NBS）,富含亮氨酸（GAC --> CUG）的重复序列（leucine-rich repeat，LRR）,Toll-白细胞介素-1受体结构域（TIR）等，NBS 结构域在植物产生和传递防御信号中有着非常重要的作用。
+>
+>植物先天免疫系统由两个主要的免疫反应组成，即病原相关分子模式激发的免疫反应（PTI）和效应蛋白激发的免疫反应（ETI）。其中，PTI主要由病原微生物表面的病原相关分子模式（如多糖、鞭毛蛋白等）刺激诱导，可导致植物产生非特异性的防卫反应（基础防卫反应）；ETI则由植物的抗病蛋白（R蛋白）识别病原微生物产生的效应蛋白引发，可使植物产生特异性的防卫反应。除此而外，植物小RNA途径则通过RNA沉默方式，参与了对病毒和细菌等病原的抗性反应。
+
++ R基因数据库[PRGDB](http://prgdb.crg.eu/wiki/Download)
+```bash
+wget http://prgdb.crg.eu/data/annotation/all_annotation_all.tsv.gz
+gzip -d all_annotation_all.tsv.gz
+# 这个文件里面包含了以及确定的R基因（reference，25个）以及推断的R基因（putative）
+# 格式：PRGID\tName\tType\tSpecies\tClass\tGenBank ID\tGenBank Locus\tDescription
+
+tsv-filter --str-eq 4:'Arabidopsis thaliana' all_annotation_all.tsv | wc -l
+# 2871
+tsv-filter --str-eq 4:'Arabidopsis thaliana' all_annotation_all.tsv > ATRgene.tsv
+
+# 210217.ExtraMaterial.logX.tsv 中的基因为 Gene symbol 格式而 ATRgene.tsv 中只含有 GenBank ID 和GenBank Locus编号，进行ID转换
+```
++ 在线网站[bioDBnet](https://biodbnet-abcc.ncifcrf.gov/)
+
 
 
 
