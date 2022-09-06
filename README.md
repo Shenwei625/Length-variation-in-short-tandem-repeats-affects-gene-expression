@@ -298,8 +298,27 @@ tsv-filter --str-eq 4:'Arabidopsis thaliana' all_annotation_all.tsv | wc -l
 tsv-filter --str-eq 4:'Arabidopsis thaliana' all_annotation_all.tsv > ATRgene.tsv
 
 # 210217.ExtraMaterial.logX.tsv 中的基因为 Gene symbol 格式而 ATRgene.tsv 中只含有 GenBank ID 和GenBank Locus编号，进行ID转换
+# 在线网站[bioDBnet](https://biodbnet-abcc.ncifcrf.gov/)进行 ID 转换
 ```
-+ 在线网站[bioDBnet](https://biodbnet-abcc.ncifcrf.gov/)
++ [TAIR 数据库](https://www.arabidopsis.org/index.jsp)
+
+输入关键词“NBS-LRR”进行查询
+
+```bash
+sed '1d' NBS-LRR.csv | cut -f 2 | sort | uniq > NBS-LRR.lst
+
+cat ../210217.ExtraMaterial.logX.tsv | datamash transpose | sed '1d' | cut -f 1 | grep -f NBS-LRR.lst | wc -l
+# 86 个基因有表达量
+
+LIST=$(cat ../210217.ExtraMaterial.logX.tsv | datamash transpose | sed '1d' | cut -f 1 | grep -f NBS-LRR.lst | perl -ne'
+    chomp($_);
+    print "$_,";
+' | sed 's/,$//')
+
+tsv-select -H --fields 1,$LIST ../210217.ExtraMaterial.logX.tsv > Rexp.tsv
+```
+
+## 1.7 关联分析
 
 
 
