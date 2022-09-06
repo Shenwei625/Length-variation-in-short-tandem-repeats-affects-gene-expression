@@ -276,7 +276,7 @@ HipSTR --bams ../hisat2/output/SRR1945464.sort.bam,../hisat2/output/SRR1945477.s
 
 
 ## 1.5 查找 R 基因
-+ 直接使用文章附录中的数据（STR文件：210217.SuppDataSet2.DiploidUnitNumberCalls.tsv以及基因表达量文件：210217.ExtraMaterial.logX.tsv）
++ 直接使用文章附录中的数据（STR文件：210217.SuppDataSet2.DiploidUnitNumberCalls.tsv 以及基因表达量文件：210217.ExtraMaterial.logX.tsv）
 ### 1.6 样本 R 基因表达量统计
 >**R基因**
 >
@@ -316,12 +316,42 @@ LIST=$(cat ../210217.ExtraMaterial.logX.tsv | datamash transpose | sed '1d' | cu
 ' | sed 's/,$//')
 
 tsv-select -H --fields 1,$LIST ../210217.ExtraMaterial.logX.tsv > Rexp.tsv
+
+# 构建表型文件
+sed '1d' Rexp.tsv | perl -a -F"\t" -ne'
+    print "@F[0]\t$_";
+' > pheno.txt
 ```
 
 ## 1.7 关联分析
++ STR 信息整理
+> 210217.SuppDataSet2.DiploidUnitNumberCalls.tsv 中统计了 STR 重复单元的数量
 
+```bash
+# 构建 .map 文件
+cat ../210217.SuppDataSet2.DiploidUnitNumberCalls.tsv | datamash transpose | 
+    sed '1d' | cut -f 1 | 
+    perl -a -F"_" -ne'
+    print "@F[0]\t.\t0\t@F[1]";
+    ' > STR.map
+sed -i 's/^chr//' STR.map
 
+# 构建 .ped 文件，从第七列开始，每两列代表一个基因型
+sed '1d' ../210217.SuppDataSet2.DiploidUnitNumberCalls.tsv | cut -f 1 | perl -ne'
+    chomp($_);
+    print "$_\t$_\t0\t0\t0\t-9\n";
+' > STR.ped
 
+REPEAT_TIMES=$(cat ../210217.SuppDataSet2.DiploidUnitNumberCalls.tsv | datamash transpose | sed '1d' | wc -l)
+for i in $(seq $REPEAT_TIMES);do
+    for j in 1 2;do
+    START_LINE=$(( $i + 1 ))
+#    echo $START_LINE
+    tsv-join --filter-file ../210217.SuppDataSet2.DiploidUnitNumberCalls.tsv --key-fields 1 --append-fields $START_LINE STR.ped > tem&&
+        mv tem STR.ped
+    done
+done
+```
 
 ## 参考
 [1、BWA 使用详解](https://www.jianshu.com/p/3b86615d647b?utm_campaign=maleskine&utm_content=note&utm_medium=seo_notes&utm_source=recommendation)
