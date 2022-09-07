@@ -275,6 +275,15 @@ HipSTR --bams ../hisat2/output/SRR1945464.sort.bam,../hisat2/output/SRR1945477.s
 >作为一个字符串，它用数字和几个字符的组合形象记录了read比对到参考序列上的细节情况，读起来要比FLAG直观友好许多，只是记录的是不同的信息。比如，一条150bp长的read比对到基因组之后，假如看到它的CIGAR字符串为：33S117M，其意思是说在比对的时候这条read开头的33bp在被跳过了（S），紧接其后的117bp则比对上了参考序列（M）。这里的S代表软跳过（Soft clip），M代表匹配（Match）。CIGAR的标记字符有“MIDNSHP=XB”这10个，分别代表read比对时的不同情况.
 
 
+
+
+
+
+
+
+
+
+
 ## 1.5 查找 R 基因
 + 直接使用文章附录中的数据（STR文件：210217.SuppDataSet2.DiploidUnitNumberCalls.tsv 以及基因表达量文件：210217.ExtraMaterial.logX.tsv）
 ### 1.6 样本 R 基因表达量统计
@@ -351,6 +360,37 @@ for i in $(seq $REPEAT_TIMES);do
         mv tem STR.ped
     done
 done
+# 计算时间较长，是否可以用 parallel 并行
+# 运算结束发现 .ped 中间有些空缺值，用 0 填补
+sed -i 's/\t\t/\t0\t/g' STR.ped  # 重复至少两次
+cat STR.ped | perl -ne'
+    s/\t\n/\t0\n/g;
+    print "$_";
+' > tem&&
+mv tem STR.ped 
+# 由于 sed 无法匹配行末尾的换行符，所以用 perl 对行末尾的空缺值进行填补
+
+
+# 关联分析
+parallel -k -j 4 "
+#    echo {1}
+    plink2 -file ./STR --linear --pheno ../TAIR/pheno.txt --mpheno {1} -noweb --allow-no-sex --out mydata{1}
+" ::: $(seq 86)
+# Error: More than 4 different alleles at variant 303 (post-sort/filter).
+```
+> STR 的变异不像 SNP，只有四种形式，STR 重复次数的多样性更高，如何解决？
+
+```bash
+
+
+```
+
+
+## 1.8 可视化
+
+```bash
+
+
 ```
 
 ## 参考
